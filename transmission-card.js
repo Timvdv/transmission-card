@@ -322,11 +322,6 @@ class TransmissionCard extends LitElement {
     this.hass.callService('switch', 'toggle', { entity_id: this.turtle_mode_entity_id });
   }
 
-  _toggleType(ev) {
-    ev.stopPropagation();
-    this.selectedType = ev.detail.value.selectedType;
-  }
-
   _toggleSort(ev) {
     this.selectedSort = ev.target.value;
   }
@@ -778,36 +773,32 @@ class TransmissionCard extends LitElement {
   }
 
   renderTypeSelect() {
-    const schema = [
-      {
-        name: 'selectedType',
-        type: 'select',
-        selector: {
-          select: {
-            multiple: false,
-            mode: "dropdown",
-            options: [
-              { label: translations[this.hass.config.language]?.torrent_types['total'] || translations['en'].torrent_types['total'], value: "total" },
-              { label: translations[this.hass.config.language]?.torrent_types['active'] || translations['en'].torrent_types['active'], value: "active" },
-              { label: translations[this.hass.config.language]?.torrent_types['completed'] || translations['en'].torrent_types['completed'], value: "completed" },
-              { label: translations[this.hass.config.language]?.torrent_types['paused'] || translations['en'].torrent_types['paused'], value: "paused" },
-            ],
-          },
-        },
-      },
-    ];
-
     if (this.config.hide_type) {
       return html``;
     }
 
+    const types = [
+      { value: 'total', icon: 'mdi:format-list-bulleted' },
+      { value: 'active', icon: 'mdi:play' },
+      { value: 'completed', icon: 'mdi:check' },
+      { value: 'paused', icon: 'mdi:pause' },
+    ];
+    const labels = translations[this.hass.config.language]?.torrent_types || translations['en'].torrent_types;
+
     return html`
-      <div class="titleitem type-select">
-        <ha-form
-          .schema=${schema}
-          @value-changed=${this._toggleType}
-        >
-        </ha-form>
+      <div class="titleitem type-select type-chips" role="tablist">
+        ${types.map(t => html`
+          <button
+            class="type-chip ${this.selectedType === t.value ? 'selected' : ''}"
+            role="tab"
+            aria-selected="${this.selectedType === t.value}"
+            title="${labels[t.value]}"
+            aria-label="${labels[t.value]}"
+            @click=${() => { this.selectedType = t.value; }}
+          >
+            <ha-icon icon="${t.icon}"></ha-icon>
+          </button>
+        `)}
       </div>
     `;
   }
@@ -1051,6 +1042,43 @@ class TransmissionCard extends LitElement {
       margin-left: auto;
       margin-right: 0.7em;
     }
+    .type-chips {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px;
+      background-color: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 0.5em;
+    }
+    .type-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      margin: 0;
+      border: none;
+      background: transparent;
+      color: var(--secondary-text-color);
+      border-radius: 0.35em;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      --mdc-icon-size: 18px;
+    }
+    .type-chip:hover {
+      background-color: var(--divider-color);
+      color: var(--primary-text-color);
+    }
+    .type-chip.selected {
+      background-color: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .type-chip:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 1px;
+    }
     .status {
       font-size: 1em;
     }
@@ -1074,9 +1102,6 @@ class TransmissionCard extends LitElement {
     }
     .no-torrent {
       margin-left: 1.4em;
-    }
-    .type-dropdown {
-      width: 100px;
     }
     .torrents {
       margin-left: 1.4em;
