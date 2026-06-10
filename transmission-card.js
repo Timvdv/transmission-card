@@ -361,7 +361,19 @@ class TransmissionCard extends LitElement {
 
   _addTorrent(event) {
     if (event.key !== 'Enter') return;
-    const torrentMagnet = event.target.value;
+    this._submitAddTorrent(event.target);
+  }
+
+  _addTorrentClick() {
+    const textfield = this.renderRoot.querySelector('#addTorrent ha-textfield');
+    if (textfield) {
+      this._submitAddTorrent(textfield);
+    }
+  }
+
+  _submitAddTorrent(textfield) {
+    const torrentMagnet = textfield.value;
+    if (!torrentMagnet) return;
 
     let payload = {
       entry_id: `${this.config_entry}`,
@@ -373,7 +385,7 @@ class TransmissionCard extends LitElement {
     }
 
     this.hass.callService('transmission', 'add_torrent', payload);
-    event.target.value = '';
+    textfield.value = '';
   }
 
   get download_speed_entity_id() {
@@ -556,6 +568,13 @@ class TransmissionCard extends LitElement {
           @keypress="${this._addTorrent}"
           label="${translations[this.hass.config.language]?.torrent_link || translations['en'].torrent_link}">
         </ha-textfield>
+        <ha-icon-button
+          class="add_torrent_button"
+          @click="${this._addTorrentClick}"
+          title="${translations[this.hass.config.language]?.torrent_link || translations['en'].torrent_link}"
+          aria-label="${translations[this.hass.config.language]?.torrent_link || translations['en'].torrent_link}">
+          <ha-icon icon="mdi:send"></ha-icon>
+        </ha-icon-button>
       </div>
     `
   }
@@ -992,12 +1011,19 @@ class TransmissionCard extends LitElement {
       line-height: 2.5rem;
     }
     #addTorrent {
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
       margin-left: 1.4em;
       margin-right: 1.4em;
       margin-bottom: 1rem;
     }
     #addTorrent ha-textfield{
-      width: 100%;
+      flex: 1;
+    }
+    .add_torrent_button {
+      color: var(--primary-color);
+      flex-shrink: 0;
     }
     .titleitem {
       width: auto;
