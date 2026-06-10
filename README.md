@@ -52,9 +52,9 @@ resources:
 | hide_delete_torrent_full | boolean      | optional     | false                   | hide delete torrent with data button |
 | hide_torrent_list        | boolean      | optional     | false                   | hide torrent list |
 | default_sort             | string       | optional     | `name`                  | sort type to display torrents at start |
-| hide_sort                | boolean      | optional     | true                    | hide sort selector |
+| hide_sort                | boolean      | optional     | false                   | hide sort selector |
 | default_order            | string       | optional     | `ascending`             | sort order to display torrents at start |
-| hide_order               | boolean      | optional     | true                    | hide sort selector |
+| hide_order               | boolean      | optional     | false                   | hide sort order toggle |
 | default_limit            | string       | optional     | `all`                   | limit number of torrents to display at start |
 | hide_limit               | boolean      | optional     | true                    | hide limit selector |
 | hide_ratio               | boolean      | optional     | false                   | hide torrent ratio |
