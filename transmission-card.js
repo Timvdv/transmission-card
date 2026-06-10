@@ -284,7 +284,7 @@ class TransmissionCard extends LitElement {
   }
 
   _formatEta(seconds) {
-    if (seconds < 0) {
+    if (!Number.isFinite(seconds) || seconds < 0) {
       return 'Unknown';
     }
 
@@ -589,7 +589,7 @@ class TransmissionCard extends LitElement {
       <div class="progressbar">
         <div class="${torrent.status} progressin" style="width:${torrent.percent}%; ${colorStyle}"></div>
         <div class="name">${torrent.name}</div>
-        ${this.config.hide_eta || !torrent.eta || torrent.eta < 0 ? '' : html`<div class="eta">${etaLabel}${this._formatEta(torrent.eta)}</div>`}
+        ${this.config.hide_eta || !Number.isFinite(torrent.eta) || torrent.eta < 0 ? '' : html`<div class="eta">${etaLabel}${this._formatEta(torrent.eta)}</div>`}
         <div class="percent">${torrent.percent}%</div>
       </div>
     `;
@@ -610,7 +610,7 @@ class TransmissionCard extends LitElement {
       <div class="torrent_details">
         ${torrent.percent} %
         ${this.config.hide_ratio ? '' : ` - ${translations[this.hass.config.language]?.ratio || translations['en'].ratio}: ${torrent.ratio.toFixed(2)}`}
-        ${this.config.hide_eta || !torrent.eta || torrent.eta < 0 ? '' : ` - ${this.config.hide_header_eta ? '' : `${translations[this.hass.config.language]?.eta || translations['en'].eta}: `}${this._formatEta(torrent.eta)}`}
+        ${this.config.hide_eta || !Number.isFinite(torrent.eta) || torrent.eta < 0 ? '' : ` - ${this.config.hide_header_eta ? '' : `${translations[this.hass.config.language]?.eta || translations['en'].eta}: `}${this._formatEta(torrent.eta)}`}
       </div>
       <div class="torrent-buttons">
         ${this.renderTorrentButton(torrent)}
@@ -802,7 +802,7 @@ class TransmissionCard extends LitElement {
     }
 
     return html`
-      <div class="titleitem">
+      <div class="titleitem type-select">
         <ha-form
           .schema=${schema}
           @value-changed=${this._toggleType}
@@ -946,6 +946,9 @@ class TransmissionCard extends LitElement {
     .name {
       margin-left: 0.7em;
       overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
       z-index: 2;
       color: var(--text-light-primary-color, var(--primary-text-color));
       line-height: 1.4em;
@@ -1043,6 +1046,10 @@ class TransmissionCard extends LitElement {
     .titleitem {
       width: auto;
       margin-left: 0.7em;
+    }
+    .type-select {
+      margin-left: auto;
+      margin-right: 0.7em;
     }
     .status {
       font-size: 1em;
