@@ -902,7 +902,7 @@ class TransmissionCard extends LitElement {
       margin: 0 20px 6px;
       height: 1.4em;
       display: flex;
-      background-color: #f1f1f1;
+      background-color: var(--secondary-background-color);
       z-index: 0;
       position: relative;
     }
@@ -922,7 +922,7 @@ class TransmissionCard extends LitElement {
       white-space: nowrap;
       min-width: 0;
       z-index: 2;
-      color: var(--text-light-primary-color, var(--primary-text-color));
+      color: var(--primary-text-color);
       line-height: 1.4em;
       flex-shrink: 1;
     }
@@ -930,7 +930,7 @@ class TransmissionCard extends LitElement {
       z-index: 2;
       margin-left: 0.7em;
       margin-right: 0.7em;
-      color: var(--text-light-primary-color, var(--primary-text-color));
+      color: var(--primary-text-color);
       line-height: 1.4em;
       white-space: nowrap;
       flex-shrink: 0;
@@ -940,25 +940,28 @@ class TransmissionCard extends LitElement {
       z-index: 2;
       margin-left: auto;
       margin-right: 0.7em;
-      color: var(--text-light-primary-color, var(--primary-text-color));
+      color: var(--primary-text-color);
       line-height: 1.4em;
       white-space: nowrap;
       flex-shrink: 0;
     }
     .downloading {
       background-color: var(--accent-color);
+      background-color: color-mix(in srgb, var(--accent-color) 80%, var(--card-background-color));
     }
     .c-Downloading, .c-UpDown {
       color: var(--accent-color);
     }
     .seeding {
       background-color: var(--light-primary-color);
+      background-color: color-mix(in srgb, var(--light-primary-color) 75%, var(--card-background-color));
     }
     .c-seeding {
-      color: var(--light-primary-color);
+      color: var(--primary-color);
     }
     .stopped {
       background-color: var(--label-badge-grey);
+      background-color: color-mix(in srgb, var(--label-badge-grey) 40%, var(--card-background-color));
     }
     .c-idle {
       color: var(--label-badge-grey);
@@ -967,7 +970,7 @@ class TransmissionCard extends LitElement {
       --mdc-icon-size: 18px;
     }
     .up-color {
-      color: var(--light-primary-color);
+      color: var(--primary-color);
     }
     .down-color {
       color: var(--accent-color);
@@ -1159,13 +1162,13 @@ class TransmissionCard extends LitElement {
       text-align: left;
     }
     .turtle_off {
-      color: var(--light-primary-color);
+      color: var(--secondary-text-color);
     }
     .turtle_on {
       color: var(--accent-color);
     }
     .start_on {
-      color: var(--light-primary-color);
+      color: var(--primary-color);
     }
     .start_off {
       color: var(--primary-color);
