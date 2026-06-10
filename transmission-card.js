@@ -529,6 +529,11 @@ class TransmissionCard extends LitElement {
 
   renderTitle() {
     const gattributes = this._getGAttributes();
+    const showTurtle = !this.config.hide_turtle
+      && typeof this.hass.states[this.turtle_mode_entity_id] != "undefined";
+    const showStartStop = !this.config.hide_startstop
+      && typeof this.hass.states[this.switch_entity_id] != "undefined";
+
     return html
     `
       <div id="toolbar">
@@ -537,8 +542,12 @@ class TransmissionCard extends LitElement {
           ${this.renderDownloadSpeed(gattributes)}
           ${this.renderUploadSpeed(gattributes)}
           <div class="spacer"></div>
-          ${this.renderTurtleButton()}
-          ${this.renderStartStopButton()}
+          ${showTurtle || showStartStop ? html`
+            <div class="titleitem action-chips">
+              ${showTurtle ? this.renderTurtleButton() : ''}
+              ${showStartStop ? this.renderStartStopButton() : ''}
+            </div>
+          ` : ''}
         </div>
         <div class="toolbar-row">
           ${this.renderTypeSelect()}
@@ -733,52 +742,34 @@ class TransmissionCard extends LitElement {
   }
 
   renderTurtleButton() {
-    if (this.config.hide_turtle) {
-      return html``;
-    }
-
-    if (typeof this.hass.states[this.turtle_mode_entity_id] == "undefined") {
-      return html``;
-    }
-
     const state = this.hass.states[this.turtle_mode_entity_id].state;
+    const title = translations[this.hass.config.language]?.turtle_mode || translations['en'].turtle_mode;
     return html`
-      <div class="titleitem">
-        <ha-icon-button
-          class="turtle_${state}"
-          @click="${this._toggleTurtle}"
-          title="${translations[this.hass.config.language]?.turtle_mode || translations['en'].turtle_mode}"
-          id="turtle">
-          <ha-icon icon="mdi:turtle"></ha-icon>
-        </ha-icon-button>
-      </div>
+      <button
+        class="action-chip turtle_${state}"
+        @click="${this._toggleTurtle}"
+        title="${title}"
+        aria-label="${title}"
+        id="turtle">
+        <ha-icon icon="mdi:turtle"></ha-icon>
+      </button>
     `;
   }
 
   renderStartStopButton() {
-    if (this.config.hide_startstop) {
-      return html``;
-    }
-
-    if (typeof this.hass.states[this.switch_entity_id] == "undefined") {
-      return html``;
-    }
-
     const state = this.hass.states[this.switch_entity_id].state;
     const isOn = state === 'on';
     const icon = isOn ? 'mdi:stop' : 'mdi:play';
     const title = isOn ? translations[this.hass.config.language]?.stop_all || translations['en'].stop_all : translations[this.hass.config.language]?.start_all || translations['en'].start_all;
     return html`
-      <div class="titleitem">
-        <ha-icon-button
-          class="start_${state}"
-          @click="${this._startStop}"
-          title="${title}"
-          id="start">
-          <ha-icon icon="${icon}">
-          </ha-icon>
-        </ha-icon-button>
-      </div>
+      <button
+        class="action-chip start_${state}"
+        @click="${this._startStop}"
+        title="${title}"
+        aria-label="${title}"
+        id="start">
+        <ha-icon icon="${icon}"></ha-icon>
+      </button>
     `;
   }
 
@@ -1040,11 +1031,7 @@ class TransmissionCard extends LitElement {
       font-size: 0.9em;
       white-space: nowrap;
     }
-    .titleitem ha-icon-button {
-      --mdc-icon-button-size: 32px;
-      --mdc-icon-size: 20px;
-    }
-    .type-chips {
+    .type-chips, .action-chips {
       display: inline-flex;
       align-items: center;
       gap: 2px;
@@ -1052,6 +1039,28 @@ class TransmissionCard extends LitElement {
       background-color: var(--card-background-color, var(--ha-card-background));
       border: 1px solid var(--divider-color);
       border-radius: 0.5em;
+    }
+    .action-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      margin: 0;
+      border: none;
+      background: transparent;
+      border-radius: 0.35em;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+      --mdc-icon-size: 18px;
+    }
+    .action-chip:hover {
+      background-color: var(--divider-color);
+    }
+    .action-chip:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 1px;
     }
     .sort-control {
       display: inline-flex;
@@ -1136,9 +1145,11 @@ class TransmissionCard extends LitElement {
     .status {
       font-size: 0.9em;
       font-weight: 500;
+      align-self: center;
     }
     .status p {
       margin: 0;
+      line-height: 1;
     }
     .status-newline {
       width: 100%;
