@@ -889,20 +889,25 @@ class TransmissionCard extends LitElement {
 
   static get styles() {
     return css`
+    .card-header {
+      padding: 16px 20px 12px;
+      line-height: 1.3;
+    }
     #attributes {
-      margin-top: 0.4em;
-      padding-bottom: 0.8em;
+      margin-top: 12px;
+      padding-bottom: 16px;
     }
     .progressbar {
       border-radius: 0.4em;
-      margin-bottom: 0.6em;
+      margin: 0 20px 6px;
       height: 1.4em;
       display: flex;
       background-color: #f1f1f1;
       z-index: 0;
       position: relative;
-      margin-left: 1.4em;
-      margin-right: 1.4em;
+    }
+    #attributes .progressbar:last-child {
+      margin-bottom: 0;
     }
     .progressin {
       border-radius: 0.4em;
@@ -977,7 +982,7 @@ class TransmissionCard extends LitElement {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      margin: 0 1.4em;
+      margin: 0 20px;
       padding: 8px 10px;
       background-color: var(--secondary-background-color);
       border: 1px solid var(--divider-color);
@@ -998,9 +1003,7 @@ class TransmissionCard extends LitElement {
       display: flex;
       align-items: center;
       gap: 0.4em;
-      margin-left: 1.4em;
-      margin-right: 1.4em;
-      margin-bottom: 1rem;
+      margin: 0 20px 12px;
     }
     #addTorrent input {
       flex: 1;
@@ -1168,11 +1171,11 @@ class TransmissionCard extends LitElement {
       color: var(--primary-color);
     }
     .no-torrent {
-      margin-left: 1.4em;
+      margin-left: 20px;
     }
     .torrents {
-      margin-left: 1.4em;
-      margin-right: 1.4em;
+      margin-left: 20px;
+      margin-right: 20px;
     }
     .torrent:not(:last-child) {
       border-bottom: 1px solid var(--divider-color);
