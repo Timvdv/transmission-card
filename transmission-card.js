@@ -30,9 +30,12 @@ const translations = {
     },
     "sort_types": {
       "name": "name",
-      "added_date": "added_date",
-      "status": "status"
+      "added_date": "date added",
+      "status": "status",
+      "percent": "progress",
+      "id": "id"
     },
+    "sort_by": "Sort by",
     "torrent_link": "Torrent Link",
     "your_magnet_link": "Your magnet link",
     "start_all": "Start All",
@@ -74,8 +77,11 @@ const translations = {
     "sort_types": {
       "name": "nome",
       "added_date": "data de adição",
-      "status": "status"
+      "status": "status",
+      "percent": "progresso",
+      "id": "id"
     },
+    "sort_by": "Ordenar por",
     "torrent_link": "Link do Torrent",
     "your_magnet_link": "Seu link magnet",
     "start_all": "Iniciar Todos",
@@ -117,9 +123,12 @@ const translations = {
     },
     "sort_types": {
       "name": "имя",
-      "added_date": "добавлена_дата",
-      "status": "статус"
+      "added_date": "дата добавления",
+      "status": "статус",
+      "percent": "прогресс",
+      "id": "id"
     },
+    "sort_by": "Сортировать по",
     "torrent_link": "Торрент ссылка",
     "your_magnet_link": "Magnet-ссылка",
     "start_all": "Запустить все",
@@ -187,6 +196,13 @@ function sortDataBy (d, byKey, order){
         return y - x;
       }
       return 0;
+    });
+  } else if (byKey == 'percent') {
+    sortedData = d.sort(function(a,b){
+      if (order == "ascending") {
+        return a.percent - b.percent;
+      }
+      return b.percent - a.percent;
     });
   } else if (byKey == 'status') {
     sortedData = d.sort(function(a,b){
@@ -326,8 +342,8 @@ class TransmissionCard extends LitElement {
     this.selectedSort = ev.target.value;
   }
 
-  _toggleOrder(ev) {
-    this.selectedOrder = ev.target.value;
+  _toggleOrder() {
+    this.selectedOrder = this.selectedOrder === 'ascending' ? 'descending' : 'ascending';
   }
 
   _toggleLimit(ev) {
@@ -444,9 +460,9 @@ class TransmissionCard extends LitElement {
       'hide_delete_torrent': false,
       'hide_delete_torrent_full': false,
       'hide_torrent_list': false,
-      'hide_sort': true,
+      'hide_sort': false,
       'default_sort': 'name',
-      'hide_order': true,
+      'hide_order': false,
       'default_order': 'ascending',
       'hide_limit': true,
       'default_limit': 'all',
@@ -515,16 +531,21 @@ class TransmissionCard extends LitElement {
     const gattributes = this._getGAttributes();
     return html
     `
-      <div id="title1">
-        ${this.renderStatus(gattributes)}
-        ${this.renderDownloadSpeed(gattributes)}
-        ${this.renderUploadSpeed(gattributes)}
-        ${this.renderTurtleButton()}
-        ${this.renderStartStopButton()}
-        ${this.renderTypeSelect()}
-        ${this.renderSortSelect()}
-        ${this.renderOrderSelect()}
-        ${this.renderLimitSelect()}
+      <div id="toolbar">
+        <div class="toolbar-row">
+          ${this.renderStatus(gattributes)}
+          ${this.renderDownloadSpeed(gattributes)}
+          ${this.renderUploadSpeed(gattributes)}
+          <div class="spacer"></div>
+          ${this.renderTurtleButton()}
+          ${this.renderStartStopButton()}
+        </div>
+        <div class="toolbar-row">
+          ${this.renderTypeSelect()}
+          <div class="spacer"></div>
+          ${this.renderSortSelect()}
+          ${this.renderLimitSelect()}
+        </div>
       </div>
     `;
   }
@@ -804,105 +825,69 @@ class TransmissionCard extends LitElement {
   }
 
   renderSortSelect() {
-
-    const schema = [
-      {
-        name: 'selectedSort',
-        type: 'select',
-        selector: {
-          select: {
-            multiple: false,
-            mode: "dropdown",
-            options: [
-              { label: translations[this.hass.config.language]?.sort_types['name'] || translations['en'].sort_types['name'], value: "name" },
-              { label: translations[this.hass.config.language]?.sort_types['added_date'] || translations['en'].sort_types['added_date'], value: "added_date" },
-              { label: "id", value: "id" },
-              { label: translations[this.hass.config.language]?.sort_types['status'] || translations['en'].sort_types['status'], value: "status" },
-            ],
-          },
-        },
-      },
-    ];
-
     if (this.config.hide_sort) {
       return html``;
     }
 
-    return html`
-      <div class="titleitem">
-        <ha-form
-          .schema=${schema}
-          @value-changed=${this._toggleSort}
-        >
-        </ha-form>
-      </div>
-    `;
-  }
+    const t = translations[this.hass.config.language] || translations['en'];
+    const labels = t.sort_types || translations['en'].sort_types;
+    const sortByLabel = t.sort_by || translations['en'].sort_by;
+    const options = ['name', 'added_date', 'percent', 'status'].map(value => ({
+      value,
+      label: labels[value] || translations['en'].sort_types[value]
+    }));
 
-  renderOrderSelect() {
-
-    const schema = [
-      {
-        name: 'selectedOrder',
-        type: 'select',
-        selector: {
-          select: {
-            multiple: false,
-            mode: "dropdown",
-            options: [
-              { label: translations[this.hass.config.language]?.ascending || translations['en'].ascending, value: "total" },
-              { label: translations[this.hass.config.language]?.descending || translations['en'].descending, value: "total" }
-            ],
-          },
-        },
-      },
-    ];
-    if (this.config.hide_order) {
-      return html``;
-    }
+    const isAscending = this.selectedOrder === 'ascending';
+    const orderLabel = isAscending
+      ? t.ascending || translations['en'].ascending
+      : t.descending || translations['en'].descending;
 
     return html`
-      <div class="titleitem">
-        <ha-form
-          .schema=${schema}
-          @value-changed=${this._toggleOrder}
+      <div class="sort-control">
+        <ha-icon icon="mdi:sort" class="sort-icon"></ha-icon>
+        <select
+          class="sort-select"
+          .value=${this.selectedSort}
+          @change=${this._toggleSort}
+          title="${sortByLabel}"
+          aria-label="${sortByLabel}"
         >
-        </ha-form>
+          ${options.map(o => html`
+            <option value="${o.value}" ?selected=${this.selectedSort === o.value}>${o.label}</option>
+          `)}
+        </select>
+        ${this.config.hide_order ? '' : html`
+          <button
+            class="order-button"
+            @click=${this._toggleOrder}
+            title="${orderLabel}"
+            aria-label="${orderLabel}"
+          >
+            <ha-icon icon="${isAscending ? 'mdi:sort-ascending' : 'mdi:sort-descending'}"></ha-icon>
+          </button>
+        `}
       </div>
     `;
   }
 
   renderLimitSelect() {
-
-    const schema = [
-      {
-        name: 'selectedLimit',
-        type: 'select',
-        selector: {
-          select: {
-            multiple: false,
-            mode: "dropdown",
-            options: [
-              { label: "5", value: "5" },
-              { label: "10", value: "10" },
-              { label: "15", value: "15" },
-              { label: translations[this.hass.config.language]?.all || translations['en'].all, value: "all" },
-            ],
-          },
-        },
-      },
-    ];
     if (this.config.hide_limit) {
       return html``;
     }
 
+    const allLabel = translations[this.hass.config.language]?.all || translations['en'].all;
+
     return html`
-      <div class="titleitem">
-        <ha-form
-          .schema=${schema}
-          @value-changed=${this._toggleOrder}
+      <div class="sort-control">
+        <select
+          class="sort-select"
+          .value=${this.selectedLimit}
+          @change=${this._toggleLimit}
         >
-        </ha-form>
+          ${['5', '10', '15', 'all'].map(value => html`
+            <option value="${value}" ?selected=${this.selectedLimit === value}>${value === 'all' ? allLabel : value}</option>
+          `)}
+        </select>
       </div>
     `;
   }
@@ -983,8 +968,7 @@ class TransmissionCard extends LitElement {
       color: var(--label-badge-grey);
     }
     .up, .down {
-      display: inline-block;
-      padding-top: 12px;
+      --mdc-icon-size: 18px;
     }
     .up-color {
       color: var(--light-primary-color);
@@ -998,12 +982,26 @@ class TransmissionCard extends LitElement {
       display: inline-block;
       width: 100%;
     }
-    #title1 {
+    #toolbar {
       display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 0 1.4em;
+      padding: 8px 10px;
+      background-color: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 0.6em;
+      box-sizing: border-box;
+    }
+    .toolbar-row {
+      display: flex;
+      align-items: center;
       flex-wrap: wrap;
-      justify-content: center;
-      width: 100%;
-      line-height: 2.5rem;
+      gap: 6px;
+      min-height: 32px;
+    }
+    .spacer {
+      flex: 1;
     }
     #addTorrent {
       display: flex;
@@ -1035,21 +1033,77 @@ class TransmissionCard extends LitElement {
       flex-shrink: 0;
     }
     .titleitem {
-      width: auto;
-      margin-left: 0.7em;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      font-size: 0.9em;
+      white-space: nowrap;
     }
-    .type-select {
-      margin-left: auto;
-      margin-right: 0.7em;
+    .titleitem ha-icon-button {
+      --mdc-icon-button-size: 32px;
+      --mdc-icon-size: 20px;
     }
     .type-chips {
       display: inline-flex;
       align-items: center;
       gap: 2px;
       padding: 2px;
-      background-color: var(--secondary-background-color);
+      background-color: var(--card-background-color, var(--ha-card-background));
       border: 1px solid var(--divider-color);
       border-radius: 0.5em;
+    }
+    .sort-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px 4px;
+      background-color: var(--card-background-color, var(--ha-card-background));
+      border: 1px solid var(--divider-color);
+      border-radius: 0.5em;
+    }
+    .sort-icon {
+      --mdc-icon-size: 16px;
+      color: var(--secondary-text-color);
+    }
+    .sort-select {
+      border: none;
+      background: transparent;
+      color: var(--primary-text-color);
+      font-size: 0.85em;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+      padding: 2px 0;
+      max-width: 7.5em;
+    }
+    .sort-select option {
+      background-color: var(--card-background-color, #fff);
+      color: var(--primary-text-color);
+    }
+    .order-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      margin: 0;
+      border: none;
+      background: transparent;
+      color: var(--secondary-text-color);
+      border-radius: 0.35em;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      --mdc-icon-size: 16px;
+    }
+    .order-button:hover {
+      background-color: var(--divider-color);
+      color: var(--primary-text-color);
+    }
+    .order-button:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 1px;
     }
     .type-chip {
       display: inline-flex;
@@ -1080,13 +1134,15 @@ class TransmissionCard extends LitElement {
       outline-offset: 1px;
     }
     .status {
-      font-size: 1em;
+      font-size: 0.9em;
+      font-weight: 500;
+    }
+    .status p {
+      margin: 0;
     }
     .status-newline {
       width: 100%;
       text-align: left;
-      margin-left: 1.4em;
-      line-height: 1rem;
     }
     .turtle_off {
       color: var(--light-primary-color);
