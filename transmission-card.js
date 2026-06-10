@@ -365,7 +365,7 @@ class TransmissionCard extends LitElement {
   }
 
   _addTorrentClick() {
-    const textfield = this.renderRoot.querySelector('#addTorrent ha-textfield');
+    const textfield = this.renderRoot.querySelector('#addTorrent input');
     if (textfield) {
       this._submitAddTorrent(textfield);
     }
@@ -562,12 +562,13 @@ class TransmissionCard extends LitElement {
     return html
     `
       <div id="addTorrent">
-        <ha-textfield
+        <input
+          type="text"
           placeholder="${translations[this.hass.config.language]?.your_magnet_link || translations['en'].your_magnet_link}"
           name="addTorrent"
           @keypress="${this._addTorrent}"
-          label="${translations[this.hass.config.language]?.torrent_link || translations['en'].torrent_link}">
-        </ha-textfield>
+          aria-label="${translations[this.hass.config.language]?.torrent_link || translations['en'].torrent_link}"
+        />
         <ha-icon-button
           class="add_torrent_button"
           @click="${this._addTorrentClick}"
@@ -1018,8 +1019,22 @@ class TransmissionCard extends LitElement {
       margin-right: 1.4em;
       margin-bottom: 1rem;
     }
-    #addTorrent ha-textfield{
+    #addTorrent input {
       flex: 1;
+      min-width: 0;
+      padding: 0.5em 0.7em;
+      font-size: 1em;
+      color: var(--primary-text-color);
+      background-color: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 0.4em;
+      outline: none;
+    }
+    #addTorrent input:focus {
+      border-color: var(--primary-color);
+    }
+    #addTorrent input::placeholder {
+      color: var(--secondary-text-color);
     }
     .add_torrent_button {
       color: var(--primary-color);
