@@ -45,6 +45,12 @@ const translations = {
     "stop": "Stop",
     "delete": "Delete torrent",
     "delete_data": "Delete torrent and data",
+    "resume": "Resume",
+    "pause": "Pause",
+    "remove": "Remove",
+    "delete_downloaded_data": "Delete downloaded data",
+    "remove_warning": "Once removed, continuing the transfer will require the torrent file. Are you sure you want to remove it?",
+    "cancel": "Cancel",
     "ratio": "Ratio",
     "eta": "ETA",
     "all": "all",
@@ -91,6 +97,12 @@ const translations = {
     "stop": "Parar",
     "delete": "Remover torrent",
     "delete_data": "Remover torrent e arquivos",
+    "resume": "Retomar",
+    "pause": "Pausar",
+    "remove": "Remover",
+    "delete_downloaded_data": "Excluir dados baixados",
+    "remove_warning": "Uma vez removido, continuar a transferência exigirá o arquivo torrent. Tem certeza de que deseja removê-lo?",
+    "cancel": "Cancelar",
     "ratio": "Proporção",
     "eta": "ETA",
     "all": "todos",
@@ -138,6 +150,12 @@ const translations = {
     "stop": "Остановить",
     "delete": "Удалить торрент",
     "delete_data": "Удалить торрент и данные",
+    "resume": "Продолжить",
+    "pause": "Пауза",
+    "remove": "Удалить",
+    "delete_downloaded_data": "Удалить загруженные данные",
+    "remove_warning": "После удаления для продолжения загрузки потребуется торрент-файл. Вы уверены, что хотите удалить его?",
+    "cancel": "Отмена",
     "ratio": "соотношение",
     "eta": "ETA",
     "all": "все",
@@ -230,10 +248,39 @@ class TransmissionCard extends LitElement {
     selectedSort: {},
     selectedOrder: {},
     selectedLimit: {},
+    contextMenu: {},
+    removeDialog: {},
   };
 
   constructor() {
     super();
+    this.contextMenu = null;
+    this.removeDialog = null;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this._onGlobalClick = () => {
+      if (this.contextMenu) {
+        this.contextMenu = null;
+      }
+    };
+    this._onGlobalKeydown = (ev) => {
+      if (ev.key === 'Escape') {
+        if (this.contextMenu) this.contextMenu = null;
+        if (this.removeDialog) this.removeDialog = null;
+      }
+    };
+    window.addEventListener('click', this._onGlobalClick);
+    window.addEventListener('contextmenu', this._onGlobalClick);
+    window.addEventListener('keydown', this._onGlobalKeydown);
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener('click', this._onGlobalClick);
+    window.removeEventListener('contextmenu', this._onGlobalClick);
+    window.removeEventListener('keydown', this._onGlobalKeydown);
+    super.disconnectedCallback();
   }
 
   _getTorrents(hass, type, sort, order, limit, sensor_entity_id) {
@@ -370,6 +417,59 @@ class TransmissionCard extends LitElement {
     const torrentId = event.currentTarget.dataset.torrentId;
     const deleteData = event.currentTarget.dataset.deleteData;
     this.hass.callService('transmission', 'remove_torrent', { entry_id: `${this.config_entry}`, id: torrentId, delete_data: deleteData });
+  }
+
+  _openContextMenu(ev, torrent) {
+    if (!this.config_entry) {
+      return;
+    }
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.contextMenu = { x: ev.clientX, y: ev.clientY, torrent };
+  }
+
+  _contextResume() {
+    const torrent = this.contextMenu?.torrent;
+    this.contextMenu = null;
+    if (torrent) {
+      this.hass.callService('transmission', 'start_torrent', { entry_id: `${this.config_entry}`, id: torrent.id });
+    }
+  }
+
+  _contextPause() {
+    const torrent = this.contextMenu?.torrent;
+    this.contextMenu = null;
+    if (torrent) {
+      this.hass.callService('transmission', 'stop_torrent', { entry_id: `${this.config_entry}`, id: torrent.id });
+    }
+  }
+
+  _contextRemove() {
+    const torrent = this.contextMenu?.torrent;
+    if (torrent) {
+      this._openRemoveDialog(torrent);
+    }
+  }
+
+  _openRemoveDialog(torrent) {
+    this.contextMenu = null;
+    this.removeDialog = { torrent, deleteData: false };
+  }
+
+  _toggleDeleteData(ev) {
+    this.removeDialog = { ...this.removeDialog, deleteData: ev.target.checked };
+  }
+
+  _cancelRemove() {
+    this.removeDialog = null;
+  }
+
+  _confirmRemove() {
+    const { torrent, deleteData } = this.removeDialog || {};
+    this.removeDialog = null;
+    if (torrent) {
+      this.hass.callService('transmission', 'remove_torrent', { entry_id: `${this.config_entry}`, id: torrent.id, delete_data: deleteData });
+    }
   }
 
   _addTorrent(event) {
@@ -567,7 +667,71 @@ class TransmissionCard extends LitElement {
           }
           </div>
         </div>
+        ${this.renderContextMenu()}
+        ${this.renderRemoveDialog()}
       </ha-card>
+    `;
+  }
+
+  renderContextMenu() {
+    if (!this.contextMenu) {
+      return html``;
+    }
+
+    const lang = this.hass.config.language;
+    const resumeLabel = translations[lang]?.resume || translations['en'].resume;
+    const pauseLabel = translations[lang]?.pause || translations['en'].pause;
+    const removeLabel = translations[lang]?.remove || translations['en'].remove;
+
+    const x = Math.min(this.contextMenu.x, window.innerWidth - 180);
+    const y = Math.min(this.contextMenu.y, window.innerHeight - 140);
+
+    return html`
+      <div class="context-menu" style="left: ${x}px; top: ${y}px;" @click=${(ev) => ev.stopPropagation()}>
+        <button class="context-item" @click=${this._contextResume}>
+          <ha-icon icon="mdi:play"></ha-icon>${resumeLabel}
+        </button>
+        <button class="context-item" @click=${this._contextPause}>
+          <ha-icon icon="mdi:pause"></ha-icon>${pauseLabel}
+        </button>
+        <div class="context-separator"></div>
+        <button class="context-item remove" @click=${this._contextRemove}>
+          <ha-icon icon="mdi:close"></ha-icon>${removeLabel}
+        </button>
+      </div>
+    `;
+  }
+
+  renderRemoveDialog() {
+    if (!this.removeDialog) {
+      return html``;
+    }
+
+    const lang = this.hass.config.language;
+    const removeLabel = translations[lang]?.remove || translations['en'].remove;
+    const cancelLabel = translations[lang]?.cancel || translations['en'].cancel;
+    const deleteDataLabel = translations[lang]?.delete_downloaded_data || translations['en'].delete_downloaded_data;
+    const warning = translations[lang]?.remove_warning || translations['en'].remove_warning;
+
+    return html`
+      <div class="dialog-backdrop" @click=${this._cancelRemove}>
+        <div class="remove-dialog" role="dialog" aria-modal="true" @click=${(ev) => ev.stopPropagation()}>
+          <h3>${removeLabel} ${this.removeDialog.torrent.name}?</h3>
+          <label class="delete-data-label">
+            <input
+              type="checkbox"
+              .checked=${this.removeDialog.deleteData}
+              @change=${this._toggleDeleteData}
+            />
+            ${deleteDataLabel}
+          </label>
+          <p class="remove-warning">${warning}</p>
+          <div class="dialog-buttons">
+            <button class="dialog-button" @click=${this._cancelRemove}>${cancelLabel}</button>
+            <button class="dialog-button danger" @click=${this._confirmRemove}>${removeLabel}</button>
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -655,12 +819,32 @@ class TransmissionCard extends LitElement {
     const etaLabel = this.config.hide_header_eta ? '' : `${translations[this.hass.config.language]?.eta || translations['en'].eta}: `;
 
     return html`
-      <div class="progressbar">
+      <div class="progressbar" @contextmenu=${(ev) => this._openContextMenu(ev, torrent)}>
         <div class="${torrent.status} progressin" style="width:${torrent.percent}%; ${colorStyle}"></div>
         <div class="name">${torrent.name}</div>
         ${this.config.hide_eta || !Number.isFinite(torrent.eta) || torrent.eta < 0 ? '' : html`<div class="eta">${etaLabel}${this._formatEta(torrent.eta)}</div>`}
         <div class="percent">${torrent.percent}%</div>
+        ${this.renderCompactDeleteButton(torrent)}
       </div>
+    `;
+  }
+
+  renderCompactDeleteButton(torrent) {
+    if (this.config.hide_delete_torrent || !this.config_entry) {
+      return html``;
+    }
+
+    const label = translations[this.hass.config.language]?.delete || translations['en'].delete;
+
+    return html`
+      <button
+        class="compact-delete"
+        @click=${() => this._openRemoveDialog(torrent)}
+        title="${label}"
+        aria-label="${label}"
+      >
+        <ha-icon icon="mdi:close"></ha-icon>
+      </button>
     `;
   }
 
@@ -669,7 +853,7 @@ class TransmissionCard extends LitElement {
     const colorStyle = customColor ? `background-color: ${customColor};` : '';
 
     return html`
-    <div class="torrent">
+    <div class="torrent" @contextmenu=${(ev) => this._openContextMenu(ev, torrent)}>
       <div class="torrent_name">${torrent.name}</div>
       <div class="torrent_state">${translations[this.hass.config.language]?.torrent_state[torrent.status] || translations['en'].torrent_state[torrent.status] || torrent.status}</div>
       <div class="progressbar">
@@ -987,6 +1171,132 @@ class TransmissionCard extends LitElement {
       line-height: 1.4em;
       white-space: nowrap;
       flex-shrink: 0;
+    }
+    .context-menu {
+      position: fixed;
+      z-index: 1000;
+      min-width: 160px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--card-background-color, var(--ha-card-background, #fff));
+      border: 1px solid var(--divider-color);
+      border-radius: 0.5em;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+    .context-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      color: var(--primary-text-color);
+      font-size: 0.9em;
+      font-family: inherit;
+      text-align: left;
+      border-radius: 0.35em;
+      cursor: pointer;
+      --mdc-icon-size: 16px;
+    }
+    .context-item:hover {
+      background-color: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .context-item.remove:hover {
+      background-color: var(--error-color, #db4437);
+    }
+    .context-separator {
+      height: 1px;
+      margin: 4px 8px;
+      background-color: var(--divider-color);
+    }
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+    .remove-dialog {
+      max-width: 420px;
+      width: calc(100% - 48px);
+      box-sizing: border-box;
+      padding: 20px;
+      background-color: var(--card-background-color, var(--ha-card-background, #fff));
+      border-radius: 0.7em;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    .remove-dialog h3 {
+      margin: 0 0 12px;
+      font-size: 1em;
+      color: var(--primary-text-color);
+      word-break: break-word;
+    }
+    .delete-data-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 0.9em;
+      color: var(--primary-text-color);
+      cursor: pointer;
+    }
+    .remove-warning {
+      margin: 0 0 16px;
+      font-size: 0.85em;
+      color: var(--secondary-text-color);
+    }
+    .dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .dialog-button {
+      padding: 6px 14px;
+      border: 1px solid var(--divider-color);
+      border-radius: 0.4em;
+      background: transparent;
+      color: var(--primary-text-color);
+      font-family: inherit;
+      font-size: 0.9em;
+      cursor: pointer;
+    }
+    .dialog-button:hover {
+      background-color: var(--secondary-background-color);
+    }
+    .dialog-button.danger {
+      border-color: transparent;
+      background-color: var(--error-color, #db4437);
+      color: #fff;
+    }
+    .dialog-button.danger:hover {
+      background-color: var(--error-color, #db4437);
+      filter: brightness(1.1);
+    }
+    .compact-delete {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.4em;
+      height: 1.4em;
+      padding: 0;
+      margin-right: 0.2em;
+      border: none;
+      background: transparent;
+      color: var(--secondary-text-color);
+      border-radius: 0.3em;
+      cursor: pointer;
+      z-index: 2;
+      flex-shrink: 0;
+      --mdc-icon-size: 14px;
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+    .compact-delete:hover {
+      color: var(--error-color, #db4437);
+      background-color: color-mix(in srgb, var(--error-color, #db4437) 15%, transparent);
     }
     .downloading {
       background-color: var(--accent-color);
