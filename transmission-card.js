@@ -879,7 +879,6 @@ class TransmissionCard extends LitElement {
 
     return html`
       <div class="sort-control">
-        <ha-icon icon="mdi:sort" class="sort-icon"></ha-icon>
         <select
           class="sort-select"
           .value=${this.selectedSort}
@@ -1120,10 +1119,6 @@ class TransmissionCard extends LitElement {
       background-color: var(--card-background-color, var(--ha-card-background));
       border: 1px solid var(--divider-color);
       border-radius: 0.5em;
-    }
-    .sort-icon {
-      --mdc-icon-size: 16px;
-      color: var(--secondary-text-color);
     }
     .sort-select {
       border: none;
