@@ -824,27 +824,7 @@ class TransmissionCard extends LitElement {
         <div class="name">${torrent.name}</div>
         ${this.config.hide_eta || !Number.isFinite(torrent.eta) || torrent.eta < 0 ? '' : html`<div class="eta">${etaLabel}${this._formatEta(torrent.eta)}</div>`}
         <div class="percent">${torrent.percent}%</div>
-        ${this.renderCompactDeleteButton(torrent)}
       </div>
-    `;
-  }
-
-  renderCompactDeleteButton(torrent) {
-    if (this.config.hide_delete_torrent || !this.config_entry) {
-      return html``;
-    }
-
-    const label = translations[this.hass.config.language]?.delete || translations['en'].delete;
-
-    return html`
-      <button
-        class="compact-delete"
-        @click=${() => this._openRemoveDialog(torrent)}
-        title="${label}"
-        aria-label="${label}"
-      >
-        <ha-icon icon="mdi:close"></ha-icon>
-      </button>
     `;
   }
 
@@ -1276,28 +1256,6 @@ class TransmissionCard extends LitElement {
       background-color: var(--error-color, #db4437);
       filter: brightness(1.1);
     }
-    .compact-delete {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 1.4em;
-      height: 1.4em;
-      padding: 0;
-      margin-right: 0.2em;
-      border: none;
-      background: transparent;
-      color: var(--secondary-text-color);
-      border-radius: 0.3em;
-      cursor: pointer;
-      z-index: 2;
-      flex-shrink: 0;
-      --mdc-icon-size: 14px;
-      transition: color 0.15s ease, background-color 0.15s ease;
-    }
-    .compact-delete:hover {
-      color: var(--error-color, #db4437);
-      background-color: color-mix(in srgb, var(--error-color, #db4437) 15%, transparent);
-    }
     .downloading {
       background-color: var(--accent-color);
       background-color: color-mix(in srgb, var(--accent-color) 80%, var(--card-background-color));
@@ -1425,7 +1383,7 @@ class TransmissionCard extends LitElement {
       display: inline-flex;
       align-items: center;
       gap: 2px;
-      padding: 2px 4px;
+      padding: 2px 4px 2px 10px;
       background-color: var(--card-background-color, var(--ha-card-background));
       border: 1px solid var(--divider-color);
       border-radius: 0.5em;
