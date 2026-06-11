@@ -238,7 +238,7 @@ class TransmissionCard extends LitElement {
 
   _getTorrents(hass, type, sort, order, limit, sensor_entity_id) {
     var res = [];
-    const torrentsEntityId = this._resolveEntity(`${type}_torrents`, 'sensor')
+    const torrentsEntityId = this._resolveEntity(`${type}_torrents`, 'sensor', [`${type}_torrents`])
       || `sensor.${sensor_entity_id}_${type}_torrents`;
     if (typeof this.hass.states[torrentsEntityId] != "undefined") {
       const data1 = this.hass.states[torrentsEntityId].attributes['torrent_info'];
@@ -419,52 +419,55 @@ class TransmissionCard extends LitElement {
     return (prefixMatch || platformMatches[0])?.device_id || null;
   }
 
-  _resolveEntity(translationKey, domain) {
+  _resolveEntity(translationKey, domain, legacyNames = []) {
     if (!this.hass || !this.hass.entities) return null;
     const deviceId = this._transmissionDeviceId;
-    if (!deviceId) return null;
-    for (const entity of Object.values(this.hass.entities)) {
-      if (entity.platform !== 'transmission') continue;
-      if (entity.device_id !== deviceId) continue;
-      if (entity.translation_key !== translationKey) continue;
-      if (!entity.entity_id.startsWith(`${domain}.`)) continue;
-      return entity.entity_id;
+
+    if (deviceId) {
+      for (const entity of Object.values(this.hass.entities)) {
+        if (entity.platform !== 'transmission') continue;
+        if (entity.device_id !== deviceId) continue;
+        if (entity.translation_key !== translationKey) continue;
+        if (!entity.entity_id.startsWith(`${domain}.`)) continue;
+        return entity.entity_id;
+      }
     }
+
+    const prefix = this.config.sensor_entity_id;
+    for (const name of legacyNames) {
+      const base = `${domain}.${prefix}_${name}`;
+      if (this.hass.states[base]) return base;
+      for (let i = 2; i <= 9; i++) {
+        const suffixed = `${base}_${i}`;
+        if (this.hass.states[suffixed]) return suffixed;
+      }
+    }
+
     return null;
   }
 
   get download_speed_entity_id() {
-    const resolved = this._resolveEntity('download', 'sensor');
-    if (resolved) return resolved;
-    let download_speed = `sensor.${this.config.sensor_entity_id}_download_speed`;
-    if (typeof this.hass.states[download_speed] != "undefined") {
-      return download_speed;
-    }
-    return `sensor.${this.config.sensor_entity_id}_down_speed`;
+    return this._resolveEntity('download', 'sensor', ['download_speed', 'down_speed'])
+      || `sensor.${this.config.sensor_entity_id}_download_speed`;
   }
 
   get upload_speed_entity_id() {
-    const resolved = this._resolveEntity('upload', 'sensor');
-    if (resolved) return resolved;
-    let upload_speed = `sensor.${this.config.sensor_entity_id}_upload_speed`;
-    if (typeof this.hass.states[upload_speed] != "undefined") {
-      return upload_speed;
-    }
-    return `sensor.${this.config.sensor_entity_id}_up_speed`;
+    return this._resolveEntity('upload', 'sensor', ['upload_speed', 'up_speed'])
+      || `sensor.${this.config.sensor_entity_id}_upload_speed`;
   }
 
   get turtle_mode_entity_id() {
-    return this._resolveEntity('turtle_mode', 'switch')
+    return this._resolveEntity('turtle_mode', 'switch', ['turtle_mode'])
       || `switch.${this.config.sensor_entity_id}_turtle_mode`;
   }
 
   get switch_entity_id() {
-    return this._resolveEntity('on_off', 'switch')
+    return this._resolveEntity('on_off', 'switch', ['switch'])
       || `switch.${this.config.sensor_entity_id}_switch`;
   }
 
   get status_entity_id() {
-    return this._resolveEntity('status', 'sensor')
+    return this._resolveEntity('status', 'sensor', ['status'])
       || `sensor.${this.config.sensor_entity_id}_status`;
   }
 
