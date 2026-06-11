@@ -238,8 +238,10 @@ class TransmissionCard extends LitElement {
 
   _getTorrents(hass, type, sort, order, limit, sensor_entity_id) {
     var res = [];
-    if (typeof this.hass.states[`sensor.${sensor_entity_id}_${type}_torrents`] != "undefined") {
-      const data1 = this.hass.states[`sensor.${sensor_entity_id}_${type}_torrents`].attributes['torrent_info'];
+    const torrentsEntityId = this._resolveEntity(`${type}_torrents`, 'sensor')
+      || `sensor.${sensor_entity_id}_${type}_torrents`;
+    if (typeof this.hass.states[torrentsEntityId] != "undefined") {
+      const data1 = this.hass.states[torrentsEntityId].attributes['torrent_info'];
       Object.keys(data1 || {}).forEach(function (key) {
         res.push({
           name: key,
@@ -286,7 +288,7 @@ class TransmissionCard extends LitElement {
   }
 
   _formatSpeed(hass, speedSensor) {
-    const precision = this.hass.entities[speedSensor].display_precision;
+    const precision = this.hass.entities[speedSensor]?.display_precision;
     if (Intl) {
       return Intl.NumberFormat(
         hass.locale.language,
@@ -399,7 +401,41 @@ class TransmissionCard extends LitElement {
     textfield.value = '';
   }
 
+  get _transmissionDeviceId() {
+    if (!this.hass || !this.hass.entities) return null;
+    const prefix = this.config.sensor_entity_id;
+    const platformMatches = [];
+    let prefixMatch = null;
+    for (const entity of Object.values(this.hass.entities)) {
+      if (entity.platform !== 'transmission') continue;
+      platformMatches.push(entity);
+      if (!prefixMatch && prefix && (
+        entity.entity_id.startsWith(`sensor.${prefix}_`) ||
+        entity.entity_id.startsWith(`switch.${prefix}_`)
+      )) {
+        prefixMatch = entity;
+      }
+    }
+    return (prefixMatch || platformMatches[0])?.device_id || null;
+  }
+
+  _resolveEntity(translationKey, domain) {
+    if (!this.hass || !this.hass.entities) return null;
+    const deviceId = this._transmissionDeviceId;
+    if (!deviceId) return null;
+    for (const entity of Object.values(this.hass.entities)) {
+      if (entity.platform !== 'transmission') continue;
+      if (entity.device_id !== deviceId) continue;
+      if (entity.translation_key !== translationKey) continue;
+      if (!entity.entity_id.startsWith(`${domain}.`)) continue;
+      return entity.entity_id;
+    }
+    return null;
+  }
+
   get download_speed_entity_id() {
+    const resolved = this._resolveEntity('download', 'sensor');
+    if (resolved) return resolved;
     let download_speed = `sensor.${this.config.sensor_entity_id}_download_speed`;
     if (typeof this.hass.states[download_speed] != "undefined") {
       return download_speed;
@@ -408,6 +444,8 @@ class TransmissionCard extends LitElement {
   }
 
   get upload_speed_entity_id() {
+    const resolved = this._resolveEntity('upload', 'sensor');
+    if (resolved) return resolved;
     let upload_speed = `sensor.${this.config.sensor_entity_id}_upload_speed`;
     if (typeof this.hass.states[upload_speed] != "undefined") {
       return upload_speed;
@@ -416,15 +454,18 @@ class TransmissionCard extends LitElement {
   }
 
   get turtle_mode_entity_id() {
-    return `switch.${this.config.sensor_entity_id}_turtle_mode`;
+    return this._resolveEntity('turtle_mode', 'switch')
+      || `switch.${this.config.sensor_entity_id}_turtle_mode`;
   }
 
   get switch_entity_id() {
-    return `switch.${this.config.sensor_entity_id}_switch`;
+    return this._resolveEntity('on_off', 'switch')
+      || `switch.${this.config.sensor_entity_id}_switch`;
   }
 
   get status_entity_id() {
-    return `sensor.${this.config.sensor_entity_id}_status`;
+    return this._resolveEntity('status', 'sensor')
+      || `sensor.${this.config.sensor_entity_id}_status`;
   }
 
   get status_entity() {
