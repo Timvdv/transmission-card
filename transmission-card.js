@@ -583,18 +583,18 @@ class TransmissionCard extends LitElement {
       <div id="toolbar">
         <div class="toolbar-row">
           ${this.renderStatus(gattributes)}
+          <div class="spacer"></div>
           ${this.renderDownloadSpeed(gattributes)}
           ${this.renderUploadSpeed(gattributes)}
-          <div class="spacer"></div>
+        </div>
+        <div class="toolbar-row">
+          ${this.renderTypeSelect()}
           ${showTurtle || showStartStop ? html`
             <div class="titleitem action-chips">
               ${showTurtle ? this.renderTurtleButton() : ''}
               ${showStartStop ? this.renderStartStopButton() : ''}
             </div>
           ` : ''}
-        </div>
-        <div class="toolbar-row">
-          ${this.renderTypeSelect()}
           <div class="spacer"></div>
           ${this.renderSortSelect()}
           ${this.renderLimitSelect()}
